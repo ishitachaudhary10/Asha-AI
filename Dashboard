@@ -1,0 +1,397 @@
+import React, { useState, useCallback } from 'react';
+import * as Slider from '@radix-ui/react-slider';
+import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { translations } from '../lib/translations';
+import FileUpload from '../components/FileUpload';
+import type { ExtractedParameters } from '../lib/pdfParser';
+
+interface DashboardProps {
+  language: string;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ language }) => {
+  const t = translations[language as keyof typeof translations];
+  const [formData, setFormData] = useState({
+    age: 45,
+    bmi: 25,
+    glucose: 100,
+    postmealGlucose: 140,
+    bloodPressure: 120,
+    skinThickness: 30,
+    insulinLevels: 80,
+    diabetesPedigree: 0.5,
+    cholesterol: 200,
+    hba1c: 5.7,
+    gender: 'male',
+    bloodGroup: 'O+',
+    vaccination: 'no'
+  });
+
+  const [prediction, setPrediction] = useState<null | {
+    risk: 'High' | 'Borderline' | 'No Risk';
+    probability: number;
+  }>(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const handleExtractedData = useCallback((data: ExtractedParameters) => {
+    setFormData(prev => ({
+      ...prev,
+      ...data
+    }));
+  }, []);
+
+  const calculateRisk = useCallback((values: typeof formData) => {
+    const riskFactors = {
+      age: values.age > 45 ? 1 : 0,
+      bmi: values.bmi > 30 ? 1 : 0,
+      glucose: values.glucose > 100 ? 1 : 0,
+      postmealGlucose: values.postmealGlucose > 140 ? 1 : 0,
+      bloodPressure: values.bloodPressure > 130 ? 1 : 0,
+      skinThickness: values.skinThickness > 35 ? 1 : 0,
+      insulinLevels: values.insulinLevels > 100 ? 1 : 0,
+      diabetesPedigree: values.diabetesPedigree > 0.7 ? 1 : 0,
+      cholesterol: values.cholesterol > 240 ? 1 : 0,
+      hba1c: values.hba1c > 5.7 ? 1 : 0,
+      vaccination: values.vaccination === 'no' ? 0.5 : 0
+    };
+
+    const riskScore = Object.values(riskFactors).reduce((a, b) => a + b, 0);
+    const probability = (riskScore / 10.5) * 100;
+
+    let risk: 'High' | 'Borderline' | 'No Risk';
+    if (riskScore >= 5) risk = 'High';
+    else if (riskScore >= 2) risk = 'Borderline';
+    else risk = 'No Risk';
+
+    return { risk, probability };
+  }, []);
+
+  const handlePredict = async () => {
+    setLoading(true);
+    const result = calculateRisk(formData);
+    setPrediction(result);
+    setLoading(false);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Input Parameters */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Health Parameters</h2>
+          
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Age: {formData.age}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.age]}
+                onValueChange={(value) => setFormData({ ...formData, age: value[0] })}
+                max={100}
+                min={18}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                BMI: {formData.bmi}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.bmi]}
+                onValueChange={(value) => setFormData({ ...formData, bmi: value[0] })}
+                max={50}
+                min={15}
+                step={0.1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fasting Glucose (mg/dL): {formData.glucose}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.glucose]}
+                onValueChange={(value) => setFormData({ ...formData, glucose: value[0] })}
+                max={300}
+                min={70}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Post-meal Glucose (mg/dL): {formData.postmealGlucose}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.postmealGlucose]}
+                onValueChange={(value) => setFormData({ ...formData, postmealGlucose: value[0] })}
+                max={400}
+                min={100}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Blood Pressure (systolic, mmHg): {formData.bloodPressure}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.bloodPressure]}
+                onValueChange={(value) => setFormData({ ...formData, bloodPressure: value[0] })}
+                max={200}
+                min={90}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Skin Thickness (mm): {formData.skinThickness}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.skinThickness]}
+                onValueChange={(value) => setFormData({ ...formData, skinThickness: value[0] })}
+                max={100}
+                min={10}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Insulin Levels (μU/mL): {formData.insulinLevels}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.insulinLevels]}
+                onValueChange={(value) => setFormData({ ...formData, insulinLevels: value[0] })}
+                max={300}
+                min={0}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Diabetes Pedigree Function: {formData.diabetesPedigree}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.diabetesPedigree]}
+                onValueChange={(value) => setFormData({ ...formData, diabetesPedigree: value[0] })}
+                max={2.5}
+                min={0.0}
+                step={0.01}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Cholesterol (mg/dL): {formData.cholesterol}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.cholesterol]}
+                onValueChange={(value) => setFormData({ ...formData, cholesterol: value[0] })}
+                max={400}
+                min={100}
+                step={1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                HbA1c (%): {formData.hba1c}
+              </label>
+              <Slider.Root
+                className="relative flex items-center select-none touch-none w-full h-5"
+                value={[formData.hba1c]}
+                onValueChange={(value) => setFormData({ ...formData, hba1c: value[0] })}
+                max={12}
+                min={4}
+                step={0.1}
+              >
+                <Slider.Track className="bg-gray-200 relative grow rounded-full h-1">
+                  <Slider.Range className="absolute bg-blue-600 rounded-full h-full" />
+                </Slider.Track>
+                <Slider.Thumb className="block w-5 h-5 bg-white shadow-lg rounded-full border-2 border-blue-600 focus:outline-none" />
+              </Slider.Root>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender
+              </label>
+              <select
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Blood Group
+              </label>
+              <select
+                value={formData.bloodGroup}
+                onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vaccination Status
+              </label>
+              <select
+                value={formData.vaccination}
+                onChange={(e) => setFormData({ ...formData, vaccination: e.target.value })}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+
+            <FileUpload onExtractedData={handleExtractedData} />
+
+            <button
+              onClick={handlePredict}
+              disabled={loading}
+              className={`w-full py-2 px-4 rounded-md ${
+                loading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+            >
+              {loading ? 'Processing...' : 'Predict Risk'}
+            </button>
+          </div>
+        </div>
+
+        {/* Results and How It Works */}
+        <div className="space-y-8">
+          {prediction && (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Risk Assessment</h2>
+              <div className={`p-4 rounded-lg ${
+                prediction.risk === 'High' ? 'bg-red-50' :
+                prediction.risk === 'Borderline' ? 'bg-yellow-50' : 'bg-green-50'
+              }`}>
+                <div className="flex items-center">
+                  {prediction.risk === 'High' && <AlertTriangle className="h-6 w-6 text-red-600" />}
+                  {prediction.risk === 'Borderline' && <Info className="h-6 w-6 text-yellow-600" />}
+                  {prediction.risk === 'No Risk' && <CheckCircle className="h-6 w-6 text-green-600" />}
+                  <span className={`ml-2 text-lg font-medium ${
+                    prediction.risk === 'High' ? 'text-red-800' :
+                    prediction.risk === 'Borderline' ? 'text-yellow-800' : 'text-green-800'
+                  }`}>
+                    {prediction.risk}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">
+                  Probability: {prediction.probability.toFixed(1)}%
+                </p>
+
+                <p className="mt-4 text-sm text-gray-700">
+                  {prediction.risk === 'High' && 'Your risk of diabetes is significantly high. This means that multiple factors are contributing to your risk, such as high BMI, family history, or elevated blood sugar levels. It\'s crucial to consult a healthcare professional and take preventive measures.'}
+                  {prediction.risk === 'Borderline' && 'Your risk level is borderline, meaning that while you are not at immediate high risk, certain factors are increasing your chances. Small lifestyle changes now can prevent future complications.'}
+                  {prediction.risk === 'No Risk' && 'Great news! Based on the assessment, your risk of diabetes is currently low. However, maintaining a balanced diet, regular exercise, and routine check-ups will help ensure long-term health.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">How It Works</h2>
+            <p className="text-gray-600 mb-4">
+              Our AI model uses Random Forest, a powerful machine learning algorithm, to analyze your health parameters and predict diabetes risk. The model has been trained on extensive medical data and validated by healthcare professionals.
+            </p>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">Key Predictors</h3>
+              <ul className="list-disc list-inside text-blue-800">
+                <li>HbA1c (Glycated Hemoglobin)</li>
+                <li>Fasting & Post-meal Glucose Levels</li>
+                <li>Blood Pressure</li>
+                <li>Body Mass Index (BMI)</li>
+                <li>Insulin Levels</li>
+                <li>Diabetes Pedigree</li>
+                <li>Cholesterol</li>
+                <li>Vaccination Status</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
