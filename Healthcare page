@@ -1,0 +1,136 @@
+import React, { useState, useCallback } from 'react';
+import { MessageSquare, Bot, AlertCircle } from 'lucide-react';
+import { translations } from '../lib/translations';
+
+interface HealthcarePageProps {
+  language: string;
+} 
+
+const HealthcarePage: React.FC<HealthcarePageProps> = ({ language }) => {
+  const t = translations[language as keyof typeof translations];
+  const [chatMessage, setChatMessage] = useState('');
+  const [chatHistory, setChatHistory] = useState<Array<{ question: string; answer: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const predefinedAnswers: { [key: string]: string } = {
+    "what are the early signs of diabetes": "Some early signs to watch out for include feeling super thirsty all the time, frequent bathroom trips, unexpected weight loss, constant fatigue, and blurry vision. If you notice these, it's a good idea to get your blood sugar levels checked!",
+    "how can i prevent type 2 diabetes": "You can lower your risk by eating a balanced diet (less sugar, more fiber and protein), staying active, and keeping a healthy weight. Regular exercise, like a 30-minute walk or workout, can make a huge difference. Also, managing stress and getting enough sleep helps a lot too!",
+    "what's the relationship between diet and diabetes": "Diet plays a big role! Eating too much sugar and processed food can lead to insulin resistance, making it harder for your body to regulate blood sugar. But a balanced diet—whole grains, lean proteins, and healthy fats—helps keep your blood sugar stable and reduces diabetes risk.",
+    "can diabetes be cured": "Right now, there's no full-on cure for diabetes, but it can be managed really well! With the right lifestyle changes, some people with type 2 diabetes can even go into remission (meaning normal blood sugar levels without meds). Type 1 diabetes requires insulin, but research is always evolving, so who knows what the future holds!",
+  };
+
+  const handleChatSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim() || isLoading) return;
+
+    setIsLoading(true);
+    setError(null);
+    const question = chatMessage.toLowerCase().trim();
+    setChatMessage('');
+
+    setChatHistory(prev => [...prev, { question, answer: '...' }]);
+
+    setTimeout(() => {
+      setChatHistory(prev => {
+        const newHistory = [...prev];
+        const answer = predefinedAnswers[question] || "I'm sorry, I don't have an answer for that.";
+        newHistory[newHistory.length - 1].answer = answer;
+        return newHistory;
+      });
+      setIsLoading(false);
+    }, 1000);
+  }, [chatMessage, isLoading]);
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <Bot className="h-8 w-8 text-blue-600" />
+          <h2 className="text-2xl font-bold text-gray-900">{t.chat.title}</h2>
+        </div>
+        
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <p className="text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="h-[600px] flex flex-col">
+          <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+            {chatHistory.length === 0 && (
+              <div className="text-center text-gray-500 mt-8">
+                <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-lg">{t.chat.title}</p>
+                <p className="text-sm mt-2">{t.chat.examples.title}</p>
+                <ul className="text-sm mt-1">
+                  <li>{t.chat.examples.signs}</li>
+                  <li>{t.chat.examples.prevention}</li>
+                  <li>{t.chat.examples.diet}</li>
+                </ul>
+              </div>
+            )}
+            {chatHistory.map((chat, index) => (
+              <div key={index} className="space-y-4">
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">You</span>
+                  </div>
+                  <div className="flex-1 bg-blue-50 rounded-lg p-4">
+                    <p className="text-gray-800">{chat.question}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-lg p-4">
+                    <p className="text-gray-800 whitespace-pre-wrap">
+                      {chat.answer === '...' ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-pulse">{t.chat.thinking}</span>
+                        </span>
+                      ) : (
+                        chat.answer
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handleChatSubmit} className="mt-auto">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder={t.chat.placeholder}
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                disabled={isLoading}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !chatMessage.trim()}
+                className={`px-6 py-3 rounded-lg flex items-center gap-2 ${
+                  isLoading || !chatMessage.trim()
+                    ? 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              >
+                <MessageSquare className="h-5 w-5" />
+                {isLoading ? t.chat.thinking : t.chat.send}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HealthcarePage;
